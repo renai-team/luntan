@@ -1,7 +1,7 @@
 package mongodb
 
 import (
-	"fmt"
+	"errors"
 	"log"
 
 	"gopkg.in/mgo.v2"
@@ -37,56 +37,88 @@ func connect(db, collection string) *mgo.Collection {
 	return c
 }
 
-// //检查错误
+// 检查错误
 func failOnErr(msg string, err error) {
 
 	if err != nil {
-		log.Fatal(msg, err)
+		log.Println(msg, err)
 	}
-	fmt.Println("操作成功！")
 }
 
-// //添加
-func (c *Connect) add(dname, cname string) {
+//SwapOne 转换
+func (c *Connect) SwapOne(name, value string) map[string]interface{} {
+
+	return bson.M{name: value}
+}
+
+//SwapAnd 复合
+func (c *Connect) SwapAnd(name1, name2, value1, value2 string) map[string]interface{} {
+
+	return bson.M{name1: value1, name2: value2}
+}
+
+//SwapOr 或者
+func (c *Connect) SwapOr(name1, name2, value1, value2 string) map[string]interface{} {
+
+	return bson.M{"$or": []bson.M{bson.M{name1: value1}, bson.M{name2: value2}}}
+}
+
+//Add 添加
+func (c *Connect) Add(dname, cname string, seletor interface{}) error {
 
 	//session和collection
 	c.collect = connect(dname, cname)
-	err := c.collect.Insert(&Test{"小文", 18, "男"})
-	failOnErr("添加错误：", err)
+	err := c.collect.Insert(&seletor)
+	if err != nil {
+		return errors.New("添加错误")
+	}
+	return nil
 }
 
-// //删除
-func (c *Connect) del(dname, cname string, selector interface{}) {
+//Del 删除
+func (c *Connect) Del(dname, cname string, selector interface{}) error {
 
 	//session和collection
 	c.collect = connect(dname, cname)
 	err := c.collect.Remove(selector)
-	failOnErr("删除错误：", err)
+	if err != nil {
+		return errors.New("删除错误")
+	}
+	return nil
 }
 
-// //修改
-func (c *Connect) change(dname, cname string, selector, update interface{}) {
+//Change 修改
+func (c *Connect) Change(dname, cname string, selector, update interface{}) error {
 
 	//session和collection
 	cc := connect(dname, cname)
 	err := cc.Update(selector, update)
-	failOnErr("修改错误：", err)
+	if err != nil {
+		return errors.New("修改错误")
+	}
+	return nil
 }
 
-// //单个查询
-func (c *Connect) findOne(dname, cname string, query, result interface{}) {
+//FindOne 单个查询
+func (c *Connect) FindOne(dname, cname string, query, result interface{}) error {
 
 	//session和collection
 	c.collect = connect(dname, cname)
 	err := c.collect.Find(query).One(result)
-	failOnErr("单行查询错误：", err)
+	if err != nil {
+		return errors.New("单个查询错误")
+	}
+	return nil
 }
 
-// //多行查询
-func (c *Connect) findAll(dname, cname string, query, selector, result interface{}) {
+//FindAll 多行查询
+func (c *Connect) FindAll(dname, cname string, query, result interface{}) error {
 
 	//session和collection
 	cc := connect(dname, cname)
-	err := cc.Find(query).Select(selector).All(result)
-	failOnErr("多行错误：", err)
+	err := cc.Find(query).All(result)
+	if err != nil {
+		return errors.New("多行查询错误")
+	}
+	return nil
 }
